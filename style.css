@@ -1,0 +1,453 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Anuphan:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+/* High-Performance 60 FPS Stylesheet - Zero Stutter, Zero Blur Lag */
+
+/* ============================================================
+   CINEMATIC PAGE INTRO OVERLAY
+   ============================================================ */
+#page-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #070709;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  pointer-events: all;
+  animation: introFadeOut 0.9s cubic-bezier(0.4, 0, 0.2, 1) 1.6s forwards;
+}
+
+#page-intro.done {
+  display: none;
+}
+
+#page-intro .intro-logo {
+  width: clamp(120px, 30vw, 200px);
+  height: clamp(120px, 30vw, 200px);
+  object-fit: contain;
+  opacity: 0;
+  transform: scale(0.85);
+  animation: introLogoIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+  filter: drop-shadow(0 0 40px rgba(255,255,255,0.12));
+}
+
+#page-intro .intro-title {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: introTextIn 0.6s ease-out 0.75s forwards;
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  color: rgba(255,255,255,0.9);
+  text-transform: uppercase;
+}
+
+#page-intro .intro-sub {
+  opacity: 0;
+  animation: introTextIn 0.5s ease-out 1s forwards;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+  letter-spacing: 0.5em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+}
+
+#page-intro .intro-line {
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: introLineExpand 0.7s ease-out 0.6s forwards;
+}
+
+@keyframes introLogoIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes introTextIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes introLineExpand {
+  to { width: clamp(80px, 20vw, 160px); }
+}
+
+@keyframes introFadeOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+:root {
+  --bg-primary: #070709;
+  --bg-card: #0e0e14;
+  --bg-card-hover: #15151e;
+  --crimson-neon: #ff2442;
+  --gold-accent: #eab308;
+  --ruby-accent: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  background-color: var(--bg-primary);
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', 'Anuphan', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Slim Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #08080b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--crimson-neon);
+}
+
+/* Fast Solid Glassmorphism (Replaced heavy GPU blur with fast solid dark fills) */
+.glass-panel {
+  background: #0d0d13;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-subtle {
+  background: #09090e;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Lightweight Equalizer Bars */
+.eq-bar {
+  display: inline-block;
+  width: 2.5px;
+  background-color: #ffffff;
+  border-radius: 999px;
+  animation: bounceBar 1.2s ease-in-out infinite alternate;
+  transform: translateZ(0);
+}
+
+.eq-bar:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+.eq-bar:nth-child(2) { height: 14px; animation-delay: 0.3s; }
+.eq-bar:nth-child(3) { height: 9px; animation-delay: 0.2s; }
+.eq-bar:nth-child(4) { height: 16px; animation-delay: 0.4s; }
+
+@keyframes bounceBar {
+  0% { transform: scaleY(0.3); opacity: 0.5; }
+  100% { transform: scaleY(1.2); opacity: 1; }
+}
+
+.eq-paused .eq-bar {
+  animation-play-state: paused;
+  transform: scaleY(0.4);
+}
+
+/* Authentic Member Card Styles from lastnameall.site */
+.ln-member-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 76px;
+  transform: translateZ(0);
+  cursor: default;
+  user-select: none;
+}
+
+.ln-member-card a {
+  cursor: pointer;
+}
+
+.role-founder {
+  background: linear-gradient(135deg, #1a1a1a 0%, #1a1a1a 60%, rgba(234, 179, 8, 0.1) 100%);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.role-founder:hover {
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.2);
+  transform: translateY(-2px);
+}
+
+.role-leader {
+  background: linear-gradient(135deg, #1a1a1a 0%, #1a1a1a 60%, rgba(239, 68, 68, 0.1) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.role-leader:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
+}
+
+.role-support {
+  background: linear-gradient(135deg, #1a1a1a 0%, #1a1a1a 60%, rgba(59, 130, 246, 0.1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.role-support:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+}
+
+.role-temspeed {
+  background: linear-gradient(135deg, #1a1a1a 0%, #1a1a1a 60%, rgba(168, 85, 247, 0.1) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.role-temspeed:hover {
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+  transform: translateY(-2px);
+}
+
+.role-default {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.role-default:hover {
+  background: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Status Indicators */
+.status-dot-online { background-color: #22c55e; }
+.status-dot-idle { background-color: #eab308; }
+.status-dot-dnd { background-color: #ef4444; }
+
+/* Range Slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -4px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+/* Toast Notification Animation */
+.toast-notice {
+  animation: toastIn 0.2s ease-out forwards;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Fast View Fade In */
+.page-smooth-appear {
+  animation: pageSmoothAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pageSmoothAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fastFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fastFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Atmospheric Pulse from lastnameall.site */
+@keyframes pulseSlow {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 8s ease-in-out infinite;
+}
+
+/* Admin Panel Bespoke Terminal & Smooth Transitions */
+.admin-card {
+  background: #0e0e13;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.admin-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.modal-pop {
+  animation: modalPopAnim 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes modalPopAnim {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Glass Terminal Accents */
+.glass-terminal {
+  background: rgba(14, 14, 19, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.glass-terminal:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Luxury Admin Bento Cards */
+.admin-bento-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(17, 17, 24, 0.7) 0%, rgba(10, 10, 14, 0.85) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+.admin-bento-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+}
+
+/* Glass Action Dock Buttons on Operative Cards */
+.admin-dock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.75rem;
+  font-size: 0.7rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.admin-dock-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+.admin-dock-btn:active {
+  transform: scale(0.96);
+}
+.admin-dock-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+/* Custom Interactive Operative Card in Admin */
+.operative-admin-card {
+  position: relative;
+  border-radius: 1rem;
+  padding: 0.85rem 1.25rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.operative-admin-card .admin-actions {
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+.operative-admin-card:hover .admin-actions {
+  opacity: 1;
+}
+
+/* Role Selector Radio Pills */
+.role-pill-btn {
+  transition: all 0.2s ease;
+}
+.role-pill-btn.active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.02);
+}
+.role-pill-btn[data-role="Founder"].active {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #facc15;
+}
+.role-pill-btn[data-role="Leader"].active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+.role-pill-btn[data-role="Member"].active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+.role-pill-btn[data-role="SUPPORT"].active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #60a5fa;
+}
+.role-pill-btn[data-role="Temspeed Member"].active {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
