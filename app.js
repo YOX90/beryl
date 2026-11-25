@@ -356,40 +356,54 @@ let currentSortBy = 'rank';      // 'rank', 'alpha', 'popular'
 let searchQuery = '';
 let visibleItemLimit = 48;       // Chunked rendering prevents DOM locking!
 
-// --- History API (pushState) Router — no # in URL ---
+// --- History API (pushState) Router — supports both Root and GitHub Pages Subpath ---
+function getBasePath() {
+  const segments = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
+  if (segments.length > 1 || (segments.length === 1 && !['home', 'beryl', 'keyrainahee', 'vega'].includes(segments[0]) && !segments[0].endsWith('.html'))) {
+    return '/' + segments[0];
+  }
+  return '';
+}
+
 function navigate(path) {
-  const clean = path.startsWith('/') ? path : '/' + path;
-  if (window.location.pathname !== clean) {
-    history.pushState(null, '', clean);
+  const clean = path.replace(/^\//, '');
+  const basePath = getBasePath();
+  const target = (basePath ? basePath + '/' : '/') + clean;
+  if (window.location.pathname !== target) {
+    history.pushState(null, '', target);
   }
   handleRoute();
 }
 
 function initRouter() {
-  // Handle back/forward button
   window.addEventListener('popstate', handleRoute);
 
-  // Legacy hash redirect: if someone arrives with a # URL, convert it
+  // Legacy hash redirect
   if (window.location.hash) {
     const hashVal = window.location.hash.replace('#', '') || 'home';
-    history.replaceState(null, '', '/' + hashVal);
+    const basePath = getBasePath();
+    history.replaceState(null, '', (basePath ? basePath + '/' : '/') + hashVal);
   }
 
   handleRoute();
 }
 
 async function handleRoute() {
-  // Get route from pathname (e.g. /beryl → "beryl", / → "home")
-  let route = window.location.pathname.replace(/^\//, '') || 'home';
+  const segments = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
+  let route = segments.length > 0 ? segments[segments.length - 1] : 'home';
+  if (route.endsWith('.html') || route === getBasePath().replace(/^\//, '')) {
+    route = 'home';
+  }
 
-  // Legacy hash fallback (should not happen after initRouter, but safety net)
+  // Legacy hash fallback
   if (!route && window.location.hash) {
     route = window.location.hash.replace('#', '') || 'home';
   }
 
-  // Legacy alias redirects (clean pushState)
+  // Legacy alias redirects
   if (route === 'vega') {
-    history.replaceState(null, '', '/beryl');
+    const basePath = getBasePath();
+    history.replaceState(null, '', (basePath ? basePath + '/' : '/') + 'beryl');
     route = 'beryl';
   }
 
