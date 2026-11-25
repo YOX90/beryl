@@ -754,7 +754,154 @@ function saveMemberFromForm(e) {
 }
 
 /* ==========================================================================
-   6. BACKUP MODAL & EVENT BINDINGS
+   6. GITHUB COMMIT — push data.js directly via GitHub API
+   ========================================================================== */
+async function commitToGitHub() {
+  const token = sessionStorage.getItem('gh_token') || prompt(
+    'กรอก GitHub Personal Access Token (repo scope)\n' +
+    'สร้างได้ที่: github.com/settings/tokens\n' +
+    'ระบบจะจำ token ไว้ตลอด session นี้'
+  );
+  if (!token) { showAdminToast('ยกเลิก: ไม่มี GitHub Token'); return; }
+  sessionStorage.setItem('gh_token', token);
+
+  const owner = 'YOX90';
+  const repo  = 'beryl';
+  const path  = 'data.js';
+  const branch = 'main';
+
+  // Build data.js content
+  const content = `window.GANGS_DATA = ${JSON.stringify(gangsData, null, 2)};\n`;
+  const encoded = btoa(unescape(encodeURIComponent(content)));
+
+  showAdminToast('⏳ กำลัง commit data.js ขึ้น GitHub...');
+
+  try {
+    // 1. Get current file SHA
+    const getRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } }
+    );
+    if (!getRes.ok) throw new Error('ไม่พบไฟล์ใน repo หรือ token ไม่ถูกต้อง');
+    const fileData = await getRes.json();
+    const sha = fileData.sha;
+
+    // 2. Commit new content
+    const putRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `update data.js — ${new Date().toLocaleString('th-TH')}`,
+          content: encoded,
+          sha,
+          branch
+        })
+      }
+    );
+    if (!putRes.ok) {
+      const err = await putRes.json();
+      throw new Error(err.message || 'Commit ล้มเหลว');
+    }
+    showAdminToast('✅ Commit สำเร็จ! GitHub Pages กำลัง deploy (~1 นาที)');
+    // Also save to localStorage
+    localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
+    window.GANGS_DATA = gangsData;
+  } catch (err) {
+    showAdminToast('❌ ' + (err.message || 'GitHub API Error'));
+    console.error('[commitToGitHub]', err);
+  }
+}
+
+/* ==========================================================================
+   6B. PDF EXPORT — print-formatted roster
+   ========================================================================== */
+function exportPDF() {
+  const g = gangsData[currentGangKey];
+  if (!g) { showAdminToast('ไม่มีข้อมูลสมาชิก'); return; }
+
+  const founders = g.founders || [];
+  const leaders  = g.leaders  || [];
+  const members  = g.members  || [];
+
+  function memberRows(list, roleLabel) {
+    if (!list.length) return '';
+    return `
+      <tr class="section-header">
+        <td colspan="5">${roleLabel} (${list.length} คน)</td>
+      </tr>
+      ${list.map((m, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${adminEscapeHtml((m.fn||'') + ' ' + (m.ln||''))}</td>
+          <td>${adminEscapeHtml(m.rbx || '-')}</td>
+          <td>${m.fb ? `<a href="${adminEscapeHtml(m.fb)}">${adminEscapeHtml(m.fb.substring(0,40))}…</a>` : '-'}</td>
+          <td>${adminEscapeHtml(m.quote || '-')}</td>
+        </tr>
+      `).join('')}
+    `;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>BERYL — ทำเนียบสมาชิก</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Anuphan', sans-serif; color: #111; padding: 24px; font-size: 12px; }
+  h1 { font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 4px; }
+  .meta { color: #555; font-size: 11px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #111; color: #fff; padding: 8px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e5e5e5; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr.section-header td { background: #f5f5f5; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #333; padding: 6px 10px; }
+  tr:nth-child(even):not(.section-header) td { background: #fafafa; }
+  a { color: #1a73e8; text-decoration: none; }
+  .summary { display: flex; gap: 24px; margin-bottom: 20px; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+  @media print {
+    body { padding: 12px; }
+    .no-print { display: none; }
+    @page { margin: 15mm; size: A4; }
+  }
+</style>
+</head><body>
+  <h1>BERYL SYNDICATE — ทำเนียบสมาชิก</h1>
+  <p class="meta">พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')} &nbsp;|&nbsp; แก๊ง: ${adminEscapeHtml(g.name || currentGangKey.toUpperCase())}</p>
+  <div class="summary">
+    <div class="stat"><div class="stat-num">${founders.length + leaders.length + members.length}</div><div class="stat-label">สมาชิกทั้งหมด</div></div>
+    <div class="stat"><div class="stat-num">${founders.length}</div><div class="stat-label">👑 Founders</div></div>
+    <div class="stat"><div class="stat-num">${leaders.length}</div><div class="stat-label">🔥 Leaders</div></div>
+    <div class="stat"><div class="stat-num">${members.length}</div><div class="stat-label">⚡ Members</div></div>
+  </div>
+  <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 20px;background:#111;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🖨️ พิมพ์ / บันทึก PDF</button>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>ชื่อ</th><th>Roblox</th><th>Facebook</th><th>Quote</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${memberRows(founders, '👑 Founders')}
+      ${memberRows(leaders, '🔥 Leaders')}
+      ${memberRows(members, '⚡ Members')}
+    </tbody>
+  </table>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
+
+/* ==========================================================================
+   7. BACKUP MODAL & EVENT BINDINGS
    ========================================================================== */
 function openBackupModal() {
   const modal = document.getElementById('backup-modal');
@@ -769,6 +916,12 @@ function closeBackupModal() {
 function bindEvents() {
   const saveBtn = document.getElementById('save-data-btn');
   if (saveBtn) saveBtn.addEventListener('click', saveData);
+
+  const commitBtn = document.getElementById('commit-github-btn');
+  if (commitBtn) commitBtn.addEventListener('click', commitToGitHub);
+
+  const pdfBtn = document.getElementById('pdf-export-btn');
+  if (pdfBtn) pdfBtn.addEventListener('click', exportPDF);
 
   const openAddBtn = document.getElementById('open-add-member-btn');
   if (openAddBtn) openAddBtn.addEventListener('click', () => openAddMemberModal());
