@@ -301,6 +301,8 @@ function initAudioPlayer() {
     muteBtn.addEventListener('click', () => {
       isMuted = !isMuted;
       audio.muted = isMuted;
+      const vFill = document.getElementById('volume-fill');
+      if (vFill) vFill.style.width = isMuted ? '0%' : (audio.volume * 100) + '%';
       updateMuteIcon(isMuted);
     });
   }
