@@ -14,34 +14,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function syncDataFromServer() {
-  // Try data.json first (pure static JSON file - GitHub Pages serves it perfectly)
+  function countMembers(data) {
+    let n = 0;
+    if (!data) return n;
+    Object.values(data).forEach(function(g) {
+      n += (g.founders||[]).length + (g.leaders||[]).length + (g.members||[]).length;
+    });
+    return n;
+  }
+
+  // Load localStorage (may have recent admin edits not yet on GitHub)
+  var localData = null;
+  var localCount = 0;
   try {
-    const res = await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' });
+    var cached = localStorage.getItem('beryl_gangs_data');
+    if (cached) {
+      localData = JSON.parse(cached);
+      localCount = countMembers(localData);
+    }
+  } catch(_) {}
+
+  // Try data.json from GitHub Pages
+  try {
+    var basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+    var url = (basePath ? basePath + '/' : '/') + 'data.json?t=' + Date.now();
+    var res = await fetch(url, { cache: 'no-store' });
     if (res.ok) {
-      const data = await res.json();
+      var data = await res.json();
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-        window.GANGS_DATA = data;
-        try { localStorage.setItem('beryl_gangs_data', JSON.stringify(data)); } catch(_) {}
+        var fetchedCount = countMembers(data);
+        // If localStorage has MORE members = admin added new ones not yet on GitHub
+        // Keep localStorage data so the new members show immediately
+        if (localData && localCount > fetchedCount) {
+          window.GANGS_DATA = localData;
+        } else {
+          window.GANGS_DATA = data;
+          try { localStorage.setItem('beryl_gangs_data', JSON.stringify(data)); } catch(_) {}
+        }
         return;
       }
     }
-  } catch (_) {}
+  } catch(_) {}
 
   // Fallback: local Python dev server
   try {
-    const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
-    if (res.ok) {
-      const ct = res.headers.get('content-type') || '';
+    var res2 = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
+    if (res2.ok) {
+      var ct = res2.headers.get('content-type') || '';
       if (ct.includes('application/json')) {
-        const data = await res.json();
-        window.GANGS_DATA = data;
-        try { localStorage.setItem('beryl_gangs_data', JSON.stringify(data)); } catch(_) {}
+        var data2 = await res2.json();
+        window.GANGS_DATA = data2;
+        try { localStorage.setItem('beryl_gangs_data', JSON.stringify(data2)); } catch(_) {}
         return;
       }
     }
-  } catch (_) {}
+  } catch(_) {}
 
-  // window.GANGS_DATA already loaded from data.js - keep it
+  // Use localStorage if available (best local fallback)
+  if (localData && Object.keys(localData).length > 0) {
+    window.GANGS_DATA = localData;
+    return;
+  }
+  // window.GANGS_DATA already loaded from data.js fallback
 }
 
 /* ==========================================================================
