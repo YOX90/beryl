@@ -122,60 +122,74 @@ function initAuth() {
    2. DATA SYNCHRONIZATION
    ========================================================================== */
 async function loadData() {
+  // 1. Try data.json (pure JSON static file — always up-to-date on GitHub Pages)
+  try {
+    const basePath = window.location.pathname.includes('/beryl/') ? '/beryl' : '';
+    const res = await fetch(basePath + '/data.json?t=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Object.keys(data).length > 0) {
+        gangsData = data;
+        window.GANGS_DATA = gangsData;
+        localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
+        if (!gangsData[currentGangKey]) currentGangKey = Object.keys(gangsData)[0] || 'beryl';
+        renderAll(); return;
+      }
+    }
+  } catch (_) {}
+
+  // 2. Local Python server
   try {
     const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
-      const json = await res.json();
-      gangsData = json;
-      // Sync server data into localStorage so roster page picks it up
-      localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
-    } else {
-      throw new Error('not ok');
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        gangsData = await res.json();
+        window.GANGS_DATA = gangsData;
+        localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
+        if (!gangsData[currentGangKey]) currentGangKey = Object.keys(gangsData)[0] || 'beryl';
+        renderAll(); return;
+      }
     }
-  } catch (err) {
-    // Try localStorage first (data saved from previous admin session)
+  } catch (_) {}
+
+  // 3. localStorage fallback
+  try {
     const cached = localStorage.getItem('beryl_gangs_data');
-    if (cached) {
-      try { gangsData = JSON.parse(cached); } catch (_) { gangsData = window.GANGS_DATA || {}; }
-    } else {
-      gangsData = window.GANGS_DATA || {};
-    }
-  }
+    if (cached) { const p = JSON.parse(cached); if (p && Object.keys(p).length) { gangsData = p; window.GANGS_DATA = gangsData; } }
+  } catch (_) {}
 
-  if (!gangsData[currentGangKey]) {
-    currentGangKey = Object.keys(gangsData)[0] || 'beryl';
-  }
-
+  if (!gangsData[currentGangKey]) currentGangKey = Object.keys(gangsData)[0] || 'beryl';
   renderAll();
 }
 
 async function saveData() {
-  // Always persist to localStorage so data survives page reload on static host
   window.GANGS_DATA = gangsData;
   localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
 
+  // Try local server first
   try {
-    const res = await fetch('/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(gangsData)
-    });
-    // Check content-type before parsing JSON (GitHub Pages returns HTML on 404)
+    const res = await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gangsData) });
     const ct = res.headers.get('content-type') || '';
     if (res.ok && ct.includes('application/json')) {
       const result = await res.json();
-      if (result.success) {
-        showAdminToast('บันทึกข้อมูลลงเซิร์ฟเวอร์เรียบร้อยแล้ว (SYNCHRONIZED)');
-      } else {
-        showAdminToast('บันทึกในเบราว์เซอร์แล้ว (เซิร์ฟเวอร์: ' + (result.error || 'error') + ')');
-      }
-    } else {
-      showAdminToast('บันทึกสำเร็จ (Local Storage)');
+      if (result.success) { showAdminToast('OK บันทึกลงเซิร์ฟเวอร์สำเร็จ'); renderAll(); return; }
     }
-  } catch (err) {
-    showAdminToast('บันทึกสำเร็จ (Local Storage — Offline Mode)');
-  }
+  } catch (_) {}
+
+  // Static host: download data.json for GitHub upload
+  downloadDataJson();
   renderAll();
+}
+
+function downloadDataJson() {
+  const blob = new Blob([JSON.stringify(gangsData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'data.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showAdminToast('⬇️ ดาวน์โหลด data.json แล้ว — นำไป upload ขึ้น github.com/YOX90/beryl');
 }
 
 /* ==========================================================================
@@ -754,64 +768,10 @@ function saveMemberFromForm(e) {
 }
 
 /* ==========================================================================
-   6. GITHUB COMMIT — push data.js directly via GitHub API
+   6. DOWNLOAD data.json — upload to GitHub Pages to deploy
    ========================================================================== */
 async function commitToGitHub() {
-  const token = sessionStorage.getItem('gh_token') || prompt(
-    'กรอก GitHub Personal Access Token (repo scope)\n' +
-    'สร้างได้ที่: github.com/settings/tokens\n' +
-    'ระบบจะจำ token ไว้ตลอด session นี้'
-  );
-  if (!token) { showAdminToast('ยกเลิก: ไม่มี GitHub Token'); return; }
-  sessionStorage.setItem('gh_token', token);
-
-  const owner = 'YOX90';
-  const repo  = 'beryl';
-  const path  = 'data.js';
-  const branch = 'main';
-
-  // Build data.js content
-  const content = `window.GANGS_DATA = ${JSON.stringify(gangsData, null, 2)};\n`;
-  const encoded = btoa(unescape(encodeURIComponent(content)));
-
-  showAdminToast('⏳ กำลัง commit data.js ขึ้น GitHub...');
-
-  try {
-    // 1. Get current file SHA
-    const getRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
-      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } }
-    );
-    if (!getRes.ok) throw new Error('ไม่พบไฟล์ใน repo หรือ token ไม่ถูกต้อง');
-    const fileData = await getRes.json();
-    const sha = fileData.sha;
-
-    // 2. Commit new content
-    const putRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-      {
-        method: 'PUT',
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `update data.js — ${new Date().toLocaleString('th-TH')}`,
-          content: encoded,
-          sha,
-          branch
-        })
-      }
-    );
-    if (!putRes.ok) {
-      const err = await putRes.json();
-      throw new Error(err.message || 'Commit ล้มเหลว');
-    }
-    showAdminToast('✅ Commit สำเร็จ! GitHub Pages กำลัง deploy (~1 นาที)');
-    // Also save to localStorage
-    localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
-    window.GANGS_DATA = gangsData;
-  } catch (err) {
-    showAdminToast('❌ ' + (err.message || 'GitHub API Error'));
-    console.error('[commitToGitHub]', err);
-  }
+  downloadDataJson();
 }
 
 /* ==========================================================================

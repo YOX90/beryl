@@ -15,25 +15,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function syncDataFromServer() {
   try {
+    // 1. Try loading data.json (pure JSON static file — always up-to-date on GitHub Pages)
+    const basePath = getBasePath ? getBasePath() : '';
+    const jsonUrl = (basePath ? basePath + '/' : '/') + 'data.json?t=' + Date.now();
+    const res = await fetch(jsonUrl, { cache: 'no-store' });
+    if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      // Accept JSON or text (GitHub Pages may serve as text/plain)
+      const data = await res.json();
+      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        window.GANGS_DATA = data;
+        localStorage.setItem('beryl_gangs_data', JSON.stringify(data));
+        return;
+      }
+    }
+  } catch (_) {}
+
+  try {
+    // 2. Fallback: try /api/data (local Python server)
     const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('application/json')) {
         window.GANGS_DATA = await res.json();
-        // Keep localStorage in sync with server
         localStorage.setItem('beryl_gangs_data', JSON.stringify(window.GANGS_DATA));
         return;
       }
     }
-    throw new Error('static host');
-  } catch (e) {
-    // On static host (GitHub Pages), load from localStorage if available
+  } catch (_) {}
+
+  // 3. Last resort: localStorage (admin's saved data on this browser)
+  try {
     const cached = localStorage.getItem('beryl_gangs_data');
     if (cached) {
-      try { window.GANGS_DATA = JSON.parse(cached); } catch (_) {}
+      const parsed = JSON.parse(cached);
+      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+        window.GANGS_DATA = parsed;
+        return;
+      }
     }
-    // Otherwise keep window.GANGS_DATA from data.js
-  }
+  } catch (_) {}
+
+  // 4. window.GANGS_DATA already set from data.js — keep it
 }
 
 /* ==========================================================================
