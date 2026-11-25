@@ -125,12 +125,21 @@ async function loadData() {
   try {
     const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
-      gangsData = await res.json();
+      const json = await res.json();
+      gangsData = json;
+      // Sync server data into localStorage so roster page picks it up
+      localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
+    } else {
+      throw new Error('not ok');
+    }
+  } catch (err) {
+    // Try localStorage first (data saved from previous admin session)
+    const cached = localStorage.getItem('beryl_gangs_data');
+    if (cached) {
+      try { gangsData = JSON.parse(cached); } catch (_) { gangsData = window.GANGS_DATA || {}; }
     } else {
       gangsData = window.GANGS_DATA || {};
     }
-  } catch (err) {
-    gangsData = window.GANGS_DATA || {};
   }
 
   if (!gangsData[currentGangKey]) {
@@ -141,21 +150,30 @@ async function loadData() {
 }
 
 async function saveData() {
+  // Always persist to localStorage so data survives page reload on static host
+  window.GANGS_DATA = gangsData;
+  localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
+
   try {
     const res = await fetch('/api/data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(gangsData)
     });
-    const result = await res.json();
-    if (result.success) {
-      showAdminToast('บันทึกข้อมูลลงเซิร์ฟเวอร์เรียบร้อยแล้ว (SYNCHRONIZED)');
+    // Check content-type before parsing JSON (GitHub Pages returns HTML on 404)
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
+      const result = await res.json();
+      if (result.success) {
+        showAdminToast('บันทึกข้อมูลลงเซิร์ฟเวอร์เรียบร้อยแล้ว (SYNCHRONIZED)');
+      } else {
+        showAdminToast('บันทึกในเบราว์เซอร์แล้ว (เซิร์ฟเวอร์: ' + (result.error || 'error') + ')');
+      }
     } else {
-      showAdminToast('เกิดข้อผิดพลาดในการบันทึก: ' + (result.error || ''));
+      showAdminToast('บันทึกสำเร็จ (Local Storage)');
     }
   } catch (err) {
-    localStorage.setItem('beryl_gangs_data', JSON.stringify(gangsData));
-    showAdminToast('บันทึกลงหน่วยความจำเบราว์เซอร์แล้ว (Offline Mode)');
+    showAdminToast('บันทึกสำเร็จ (Local Storage — Offline Mode)');
   }
   renderAll();
 }

@@ -17,10 +17,22 @@ async function syncDataFromServer() {
   try {
     const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
-      window.GANGS_DATA = await res.json();
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        window.GANGS_DATA = await res.json();
+        // Keep localStorage in sync with server
+        localStorage.setItem('beryl_gangs_data', JSON.stringify(window.GANGS_DATA));
+        return;
+      }
     }
+    throw new Error('static host');
   } catch (e) {
-    // Keep window.GANGS_DATA from data.js
+    // On static host (GitHub Pages), load from localStorage if available
+    const cached = localStorage.getItem('beryl_gangs_data');
+    if (cached) {
+      try { window.GANGS_DATA = JSON.parse(cached); } catch (_) {}
+    }
+    // Otherwise keep window.GANGS_DATA from data.js
   }
 }
 
