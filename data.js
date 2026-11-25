@@ -28,7 +28,7 @@ window.GANGS_DATA = {
     "leaders": [],
     "members": [
       {
-        "fn": "Jack",
+        "fn": "Faro",
         "ln": "WasdBxy",
         "role": "Member",
         "img": "https://cdn.discordapp.com/attachments/1573894421563572245/1575098039268278363/image.png?ex=6b080bdc&is=6b06ba5c&hm=ca92af9c2c5fbfeab791d4a42dfb5dee801f27269fde8bed89f9d48bf2ace2f8&",
