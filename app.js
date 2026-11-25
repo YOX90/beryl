@@ -357,10 +357,14 @@ let searchQuery = '';
 let visibleItemLimit = 48;       // Chunked rendering prevents DOM locking!
 
 // --- History API (pushState) Router — supports both Root and GitHub Pages Subpath ---
+function isGitHubPages() {
+  return window.location.hostname.endsWith('github.io');
+}
+
 function getBasePath() {
-  const segments = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
-  if (segments.length > 1 || (segments.length === 1 && !['home', 'beryl', 'keyrainahee', 'vega'].includes(segments[0]) && !segments[0].endsWith('.html'))) {
-    return '/' + segments[0];
+  if (isGitHubPages()) {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    return parts.length > 0 ? '/' + parts[0] : '';
   }
   return '';
 }
@@ -388,17 +392,27 @@ function initRouter() {
   handleRoute();
 }
 
-async function handleRoute() {
+function getCurrentRoute() {
+  const isGH = isGitHubPages();
   const segments = window.location.pathname.replace(/^\//, '').split('/').filter(Boolean);
-  let route = segments.length > 0 ? segments[segments.length - 1] : 'home';
-  if (route.endsWith('.html') || route === getBasePath().replace(/^\//, '')) {
+  let route = '';
+  if (isGH) {
+    route = segments.slice(1).join('/') || '';
+  } else {
+    route = segments.join('/') || '';
+  }
+  if (!route || route.endsWith('.html') || route === 'home') {
     route = 'home';
   }
-
-  // Legacy hash fallback
-  if (!route && window.location.hash) {
-    route = window.location.hash.replace('#', '') || 'home';
+  if (window.location.hash) {
+    const hashVal = window.location.hash.replace('#', '');
+    if (hashVal) route = hashVal;
   }
+  return route;
+}
+
+async function handleRoute() {
+  let route = getCurrentRoute();
 
   // Legacy alias redirects
   if (route === 'vega') {
@@ -439,7 +453,11 @@ async function handleRoute() {
 
   if (route === 'home' || route === '') {
     currentGangId = null;
-    history.replaceState(null, '', '/home');
+    const basePath = getBasePath();
+    const target = (basePath ? basePath + '/' : '/') + 'home';
+    if (window.location.pathname !== (basePath ? basePath + '/' : '/') && window.location.pathname !== target) {
+      history.replaceState(null, '', target);
+    }
     showSection(homeSection);
   } else if (route === 'keyrainahee') {
     currentGangId = null;

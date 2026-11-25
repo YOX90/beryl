@@ -6,6 +6,21 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+
+  <!-- Single Page Apps for GitHub Pages: https://github.com/rafgraph/spa-github-pages -->
+  <script>
+    (function(l) {
+      if (l.search[1] === '/' ) {
+        var decoded = l.search.slice(1).split('&').map(function(s) { 
+          return s.replace(/~and~/g, '&')
+        }).join('?');
+        window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location));
+  </script>
+
   <title>Beryl | Official Community & Roster Portal</title>
   <meta name="description" content="Beryl - Premier FiveM & Roblox Gaming Syndicate Command Center, Live Roster Directory & Link-in-Bio Network" />
   
@@ -42,7 +57,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261124_full_clean_v4" />
+  <link rel="stylesheet" href="style.css?v=20261125_gh_pages_final" />
 </head>
 <body class="bg-[#070709] text-white selection:bg-white/20 selection:text-white min-h-screen relative flex flex-col justify-between">
 
@@ -672,9 +687,9 @@
   </div>
 
   <!-- Application Scripts -->
-  <script src="data.js?v=20261124_full_clean_v4"></script>
-  <script src="app.js?v=20261124_full_clean_v4"></script>
-  <script src="admin.js?v=20261124_full_clean_v4"></script>
+  <script src="data.js?v=20261125_gh_pages_final"></script>
+  <script src="app.js?v=20261125_gh_pages_final"></script>
+  <script src="admin.js?v=20261125_gh_pages_final"></script>
 
   <script>
     // Remove intro overlay after animation completes (1.6s delay + 0.9s fade = 2.5s)
