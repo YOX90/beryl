@@ -14,49 +14,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function syncDataFromServer() {
+  // Try data.json first (pure static JSON file - GitHub Pages serves it perfectly)
   try {
-    // 1. Try loading data.json (pure JSON static file — always up-to-date on GitHub Pages)
-    const basePath = getBasePath ? getBasePath() : '';
-    const jsonUrl = (basePath ? basePath + '/' : '/') + 'data.json?t=' + Date.now();
-    const res = await fetch(jsonUrl, { cache: 'no-store' });
+    const res = await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
-      const ct = res.headers.get('content-type') || '';
-      // Accept JSON or text (GitHub Pages may serve as text/plain)
       const data = await res.json();
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         window.GANGS_DATA = data;
-        localStorage.setItem('beryl_gangs_data', JSON.stringify(data));
+        try { localStorage.setItem('beryl_gangs_data', JSON.stringify(data)); } catch(_) {}
         return;
       }
     }
   } catch (_) {}
 
+  // Fallback: local Python dev server
   try {
-    // 2. Fallback: try /api/data (local Python server)
     const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('application/json')) {
-        window.GANGS_DATA = await res.json();
-        localStorage.setItem('beryl_gangs_data', JSON.stringify(window.GANGS_DATA));
+        const data = await res.json();
+        window.GANGS_DATA = data;
+        try { localStorage.setItem('beryl_gangs_data', JSON.stringify(data)); } catch(_) {}
         return;
       }
     }
   } catch (_) {}
 
-  // 3. Last resort: localStorage (admin's saved data on this browser)
-  try {
-    const cached = localStorage.getItem('beryl_gangs_data');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-        window.GANGS_DATA = parsed;
-        return;
-      }
-    }
-  } catch (_) {}
-
-  // 4. window.GANGS_DATA already set from data.js — keep it
+  // window.GANGS_DATA already loaded from data.js - keep it
 }
 
 /* ==========================================================================
